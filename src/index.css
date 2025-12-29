@@ -1,0 +1,169 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* FinVoice Design System - Empowering Women's Self Help Groups */
+
+@layer base {
+  :root {
+    /* Pastel Mint Green Primary */
+    --background: 140 30% 97%;
+    --foreground: 160 25% 15%;
+
+    /* Card surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 160 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 160 25% 15%;
+
+    /* Primary - Mint Green */
+    --primary: 158 45% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 158 50% 85%;
+    --primary-glow: 158 50% 70%;
+
+    /* Secondary - Sky Blue */
+    --secondary: 200 60% 85%;
+    --secondary-foreground: 200 50% 25%;
+
+    /* Accent - Warm Coral */
+    --accent: 15 75% 70%;
+    --accent-foreground: 15 80% 20%;
+
+    /* Muted - Soft Gray Green */
+    --muted: 140 15% 92%;
+    --muted-foreground: 160 10% 45%;
+
+    /* Destructive */
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders & Inputs */
+    --border: 160 20% 85%;
+    --input: 160 20% 88%;
+    --ring: 158 45% 45%;
+
+    --radius: 1rem;
+
+    /* Custom colors for FinVoice */
+    --success: 145 60% 45%;
+    --success-light: 145 50% 90%;
+    --warning: 38 90% 60%;
+    --warning-light: 38 80% 90%;
+    --info: 200 70% 55%;
+    --info-light: 200 60% 92%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(158 45% 45%), hsl(180 50% 55%));
+    --gradient-secondary: linear-gradient(135deg, hsl(200 60% 85%), hsl(220 50% 88%));
+    --gradient-warm: linear-gradient(135deg, hsl(15 75% 70%), hsl(35 80% 75%));
+    --gradient-hero: linear-gradient(180deg, hsl(158 50% 92%) 0%, hsl(200 60% 95%) 100%);
+
+    /* Shadows */
+    --shadow-soft: 0 4px 20px -4px hsl(160 25% 15% / 0.08);
+    --shadow-card: 0 8px 30px -8px hsl(160 25% 15% / 0.12);
+    --shadow-glow: 0 0 40px hsl(158 45% 45% / 0.2);
+
+    /* Sidebar */
+    --sidebar-background: 140 30% 97%;
+    --sidebar-foreground: 160 25% 15%;
+    --sidebar-primary: 158 45% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 158 50% 90%;
+    --sidebar-accent-foreground: 158 40% 25%;
+    --sidebar-border: 160 20% 85%;
+    --sidebar-ring: 158 45% 45%;
+  }
+
+  .dark {
+    --background: 160 20% 8%;
+    --foreground: 140 20% 95%;
+
+    --card: 160 18% 12%;
+    --card-foreground: 140 20% 95%;
+
+    --popover: 160 18% 12%;
+    --popover-foreground: 140 20% 95%;
+
+    --primary: 158 50% 50%;
+    --primary-foreground: 160 20% 8%;
+    --primary-light: 158 40% 25%;
+    --primary-glow: 158 50% 40%;
+
+    --secondary: 200 40% 20%;
+    --secondary-foreground: 200 50% 90%;
+
+    --accent: 15 60% 50%;
+    --accent-foreground: 15 80% 95%;
+
+    --muted: 160 15% 18%;
+    --muted-foreground: 140 15% 65%;
+
+    --destructive: 0 60% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 160 15% 22%;
+    --input: 160 15% 22%;
+    --ring: 158 50% 50%;
+
+    --sidebar-background: 160 20% 8%;
+    --sidebar-foreground: 140 20% 95%;
+    --sidebar-primary: 158 50% 50%;
+    --sidebar-primary-foreground: 160 20% 8%;
+    --sidebar-accent: 160 15% 18%;
+    --sidebar-accent-foreground: 140 20% 95%;
+    --sidebar-border: 160 15% 22%;
+    --sidebar-ring: 158 50% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Nunito', system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .gradient-secondary {
+    background: var(--gradient-secondary);
+  }
+  
+  .gradient-warm {
+    background: var(--gradient-warm);
+  }
+  
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+  
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+  
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
