@@ -16,8 +16,12 @@ export const MeetingsPage = () => {
     const meetings: Date[] = [];
     const today = startOfDay(new Date());
 
-    // Generate next 12 meetings
-    for (let i = 0; i < 52; i++) {
+    // ✅ FIX: Use appropriate max iterations based on frequency
+    // Weekly: 52 weeks = 1 year, Monthly: 12 months = 1 year
+    const maxIterations = groupInfo.meetingFrequency === 'weekly' ? 52 : 12;
+
+    // Generate next 12 upcoming meetings
+    for (let i = 0; i < maxIterations; i++) {
       let meetingDate: Date;
       if (groupInfo.meetingFrequency === 'weekly') {
         meetingDate = addWeeks(firstDate, i);
@@ -47,7 +51,7 @@ export const MeetingsPage = () => {
   const nextMeeting = upcomingMeetings[0];
 
   return (
-    <><div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="bg-card border-b border-border p-6">
         <div className="flex items-center gap-3 mb-4">
@@ -122,29 +126,28 @@ export const MeetingsPage = () => {
 
               return (
                 <div
-  key={date.toISOString()}
-  className={`
+                  key={date.toISOString()}
+                  className={`
     relative
     w-6 h-6 flex items-center justify-center rounded-md
     text-[10px] font-medium
-    ${
-      isMeeting
-        ? 'bg-primary text-primary-foreground ring-2 ring-primary/60'
-        : isToday
-        ? 'border-2 border-primary text-primary'
-        : isPast
-        ? 'text-muted-foreground/40'
-        : 'text-foreground'
-    }
+    ${isMeeting
+                      ? 'bg-primary text-primary-foreground ring-2 ring-primary/60'
+                      : isToday
+                        ? 'border-2 border-primary text-primary'
+                        : isPast
+                          ? 'text-muted-foreground/40'
+                          : 'text-foreground'
+                    }
   `}
->
-  {format(date, 'd')}
+                >
+                  {format(date, 'd')}
 
-  {/* Meeting dot */}
-  {isMeeting && !isToday && (
-    <span className="absolute bottom-[2px] w-1 h-1 bg-primary-foreground rounded-full" />
-  )}
-</div>
+                  {/* Meeting dot */}
+                  {isMeeting && !isToday && (
+                    <span className="absolute bottom-[2px] w-1 h-1 bg-primary-foreground rounded-full" />
+                  )}
+                </div>
 
               );
             })}
@@ -202,6 +205,8 @@ export const MeetingsPage = () => {
           ))}
         </div>
       </div>
-    </div><BottomNavigation /></>
+
+      <BottomNavigation />
+    </div>
   );
 };

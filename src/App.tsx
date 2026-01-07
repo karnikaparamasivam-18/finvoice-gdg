@@ -16,6 +16,8 @@ import NotFound from "./pages/NotFound";
 import { AuthPage } from "./pages/AuthPage";
 
 import { useAuth } from "@/backend/auth/useAuth";
+import { useLoadFromFirestore } from "@/hooks/useLoadFromFirestore";
+import { useSmartRoute } from "@/hooks/useSmartRoute";
 
 const queryClient = new QueryClient();
 
@@ -31,101 +33,119 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   return children;
 };
 
+const RootRoute = () => {
+  // ✅ Smart routing based on auth and setup state
+  useSmartRoute();
+  return null; // This will redirect
+};
+
+const AppWithDataLoad = () => {
+  // ✅ Load data from Firestore on app start
+  useLoadFromFirestore();
+
+  return (
+    <Routes>
+
+      {/* AUTH (ONLY PUBLIC PAGE) */}
+      <Route path="/auth" element={<AuthPage />} />
+
+      {/* SMART ROOT ROUTE - Redirects based on auth & setup state */}
+      <Route path="/" element={<RootRoute />} />
+
+      {/* LANGUAGE PAGE - For new users */}
+      <Route
+        path="/welcome"
+        element={
+          <ProtectedRoute>
+            <WelcomePage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* GROUP SETUP */}
+      <Route
+        path="/setup"
+        element={
+          <ProtectedRoute>
+            <GroupSetupPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* MEMBERS */}
+      <Route
+        path="/members"
+        element={
+          <ProtectedRoute>
+            <MemberRegistrationPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* DASHBOARD */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* LOANS */}
+      <Route
+        path="/loans"
+        element={
+          <ProtectedRoute>
+            <LoansPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* SUMMARY */}
+      <Route
+        path="/summary"
+        element={
+          <ProtectedRoute>
+            <SummaryPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* MEETINGS */}
+      <Route
+        path="/meetings"
+        element={
+          <ProtectedRoute>
+            <MeetingsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* SETTINGS */}
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 404 */}
+      <Route path="*" element={<NotFound />} />
+
+    </Routes>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-
-          {/* AUTH (ONLY PUBLIC PAGE) */}
-          <Route path="/auth" element={<AuthPage />} />
-
-          {/* LANGUAGE PAGE */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <WelcomePage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* GROUP SETUP */}
-          <Route
-            path="/setup"
-            element={
-              <ProtectedRoute>
-                <GroupSetupPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* MEMBERS */}
-          <Route
-            path="/members"
-            element={
-              <ProtectedRoute>
-                <MemberRegistrationPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* DASHBOARD */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* LOANS */}
-          <Route
-            path="/loans"
-            element={
-              <ProtectedRoute>
-                <LoansPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* SUMMARY */}
-          <Route
-            path="/summary"
-            element={
-              <ProtectedRoute>
-                <SummaryPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* MEETINGS */}
-          <Route
-            path="/meetings"
-            element={
-              <ProtectedRoute>
-                <MeetingsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* SETTINGS */}
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <SettingsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* 404 */}
-          <Route path="*" element={<NotFound />} />
-
-        </Routes>
+        <AppWithDataLoad />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

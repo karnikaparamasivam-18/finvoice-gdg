@@ -1,0 +1,62 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the group
+    function isGroupOwner(groupId) {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy == request.auth.uid;
+    }
+    
+    // Groups collection
+    match /groups/{groupId} {
+      // Allow read if authenticated and user created this group
+      allow read: if isAuthenticated() && resource.data.createdBy == request.auth.uid;
+      
+      // Allow create if authenticated
+      allow create: if isAuthenticated() && 
+                       request.resource.data.createdBy == request.auth.uid;
+      
+      // Allow update/delete only if user owns the group
+      allow update, delete: if isAuthenticated() && 
+                               resource.data.createdBy == request.auth.uid;
+      
+      // Members subcollection
+      match /members/{memberId} {
+        // Allow read/write if user owns the parent group
+        allow read, write: if isGroupOwner(groupId);
+      }
+    }
+    
+    // Loans collection (if used in future)
+    match /loans/{loanId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Savings collection (if used in future)
+    match /savings/{savingId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Meetings collection (if used in future)
+    match /meetings/{meetingId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Repayments collection (if used in future)
+    match /repayments/{repaymentId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Reports collection (if used in future)
+    match /reports/{reportId} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}

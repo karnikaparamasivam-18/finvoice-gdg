@@ -23,7 +23,9 @@ export const MemberRegistrationPage = () => {
     address: '',
   });
 
-  const handleAddMember = async () => {
+  const handleAddMember = async (e: React.FormEvent) => {
+  e.preventDefault(); // ✅ PREVENT PAGE REFRESH
+  
   if (!groupInfo) return;
 
   const memberId = crypto.randomUUID(); // ✅ ONE ID
@@ -48,11 +50,20 @@ export const MemberRegistrationPage = () => {
 
     // 2️⃣ Save to Firestore
     await addMemberToGroup(groupInfo.id, newMember);
+    
+    toast({
+      title: "Member Added",
+      description: `${formData.name} has been added to the group.`,
+    });
 
     setFormData({ name: "", address: "" });
   } catch (err) {
     console.error(err);
-    alert("Failed to add member");
+    toast({
+      title: "Error",
+      description: "Failed to add member",
+      variant: "destructive",
+    });
   }
 };
 

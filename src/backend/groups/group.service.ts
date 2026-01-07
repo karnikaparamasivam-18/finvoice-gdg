@@ -1,4 +1,4 @@
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "@/firebase/firebase";
 import { GroupInfo } from "@/store/appStore";
 
@@ -20,4 +20,24 @@ export const createGroup = async (group: GroupInfo) => {
     createdBy: user.uid,
     createdAt: serverTimestamp(),
   });
+};
+
+// ✅ GET GROUP DATA FROM FIRESTORE
+export const getGroup = async (groupId: string): Promise<GroupInfo | null> => {
+  const groupRef = doc(db, "groups", groupId);
+  const snapshot = await getDoc(groupRef);
+
+  if (!snapshot.exists()) {
+    return null;
+  }
+
+  const data = snapshot.data();
+  return {
+    id: groupId,
+    name: data.name,
+    memberCount: data.memberCount,
+    meetingFrequency: data.meetingFrequency,
+    firstMeetingDate: data.firstMeetingDate,
+    contributionAmount: data.contributionAmount,
+  };
 };

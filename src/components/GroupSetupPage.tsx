@@ -50,7 +50,10 @@ const handleSubmit = async (e: React.FormEvent) => {
   // 1️⃣ Save locally (Zustand)
   setGroupInfo(groupData);
 
-  // 2️⃣ Save to Firestore
+  // 2️⃣ Save GROUP ID to localStorage for loading later
+  localStorage.setItem('groupId', groupData.id);
+
+  // 3️⃣ Save to Firestore
   try {
     await createGroup(groupData);
     navigate("/members");

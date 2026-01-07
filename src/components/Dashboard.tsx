@@ -4,6 +4,13 @@ import { t } from '@/utils/translations';
 import { Mic, MicOff, Wallet, Users, TrendingUp, Volume2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { BottomNavigation } from './BottomNavigation';
+import { ManualEntryForms } from './ManualEntryForms';
+import { TransactionHistory } from './TransactionHistory';
+import {
+  updateMemberBalanceInFirestore,
+  updateMemberLoanInFirestore,
+  recordLoanRepaymentInFirestore
+} from '@/backend/members/members.service';
 import '@/types/speech.d.ts';
 
 export const Dashboard = () => {
@@ -12,8 +19,10 @@ export const Dashboard = () => {
   const members = useAppStore((state) => state.members);
   const totalBalance = useAppStore((state) => state.totalBalance);
   const updateMemberBalance = useAppStore((state) => state.updateMemberBalance);
-  const addLoan = useAppStore((state) => state.addLoan);
-  const addLoanRepayment = useAppStore((state) => state.addLoanRepayment);
+  const addLoanByName = useAppStore((state) => state.addLoanByName);
+  const addLoanRepaymentByName = useAppStore((state) => state.addLoanRepaymentByName);
+  const updateMemberBalanceByName = useAppStore((state) => state.updateMemberBalanceByName);
+  const addTransaction = useAppStore((state) => state.addTransaction); // ✅ NEW
 
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -21,12 +30,12 @@ export const Dashboard = () => {
 
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
+
     if (SpeechRecognitionAPI) {
       const recognitionInstance = new SpeechRecognitionAPI();
       recognitionInstance.continuous = false;
       recognitionInstance.interimResults = true;
-      
+
       // Set language based on app language
       const langMap = { en: 'en-IN', ta: 'ta-IN', hi: 'hi-IN', ml: 'ml-IN' };
       recognitionInstance.lang = langMap[language || 'en'];
@@ -36,7 +45,7 @@ export const Dashboard = () => {
         const result = event.results[current];
         const text = result[0].transcript;
         setTranscript(text);
-        
+
         if (result.isFinal) {
           processVoiceCommand(text);
         }
@@ -59,16 +68,18 @@ export const Dashboard = () => {
     }
   }, [language]);
 
-  const processVoiceCommand = useCallback((text: string) => {
+  const processVoiceCommand = useCallback(async (text: string) => {
     const lowerText = text.toLowerCase();
-    
+
     // Find member name in the command
     const memberNames = members.map(m => m.name.toLowerCase());
     let foundMember = '';
-    
-    for (const name of memberNames) {
-      if (lowerText.includes(name)) {
-        foundMember = name;
+    let foundMemberId = '';
+
+    for (let i = 0; i < memberNames.length; i++) {
+      if (lowerText.includes(memberNames[i])) {
+        foundMember = members[i].name;
+        foundMemberId = members[i].id;
         break;
       }
     }
@@ -88,26 +99,53 @@ export const Dashboard = () => {
 
     // Determine action
     if (lowerText.includes('loan') || lowerText.includes('கடன்') || lowerText.includes('कर्ज') || lowerText.includes('വായ്പ')) {
-      addLoan(foundMember, amount, 12);
+      addLoanByName(foundMember, amount, 12);
+      // ✅ Sync to Firestore
+      if (groupInfo) {
+        await updateMemberLoanInFirestore(groupInfo.id, foundMemberId, amount, 12);
+      }
       toast({
         title: `${t(language, 'loanTaken')} ${foundMember}`,
         description: `₹${amount.toLocaleString('en-IN')}`,
       });
     } else if (lowerText.includes('repay') || lowerText.includes('return') || lowerText.includes('திருப்பி') || lowerText.includes('चुका') || lowerText.includes('തിരിച്ച')) {
-      addLoanRepayment(foundMember, amount);
+      addLoanRepaymentByName(foundMember, amount);
+      // ✅ Get member and sync to Firestore
+      const member = members.find(m => m.id === foundMemberId);
+      if (member && groupInfo) {
+        const repaymentAmount = Math.min(amount, member.loan);
+        const newLoanAmount = member.loan - repaymentAmount;
+        await recordLoanRepaymentInFirestore(
+          groupInfo.id,
+          foundMemberId,
+          repaymentAmount,
+          newLoanAmount,
+          member.loanRepayments
+        );
+      }
       toast({
         title: `${t(language, 'repayment')} ${foundMember}`,
         description: `₹${amount.toLocaleString('en-IN')}`,
       });
     } else if (lowerText.includes('add') || lowerText.includes('சேர்') || lowerText.includes('जोड़') || lowerText.includes('ചേർ')) {
-      updateMemberBalance(foundMember, amount);
+      updateMemberBalanceByName(foundMember, amount);
+      // ✅ Sync to Firestore
+      const member = members.find(m => m.id === foundMemberId);
+      if (member && groupInfo) {
+        await updateMemberBalanceInFirestore(groupInfo.id, foundMemberId, member.balance + amount);
+      }
       toast({
         title: `${t(language, 'updated')}!`,
         description: `${foundMember} ${t(language, 'added')} ₹${amount.toLocaleString('en-IN')}`,
       });
     } else {
       // Default to adding balance
-      updateMemberBalance(foundMember, amount);
+      updateMemberBalanceByName(foundMember, amount);
+      // ✅ Sync to Firestore
+      const member = members.find(m => m.id === foundMemberId);
+      if (member && groupInfo) {
+        await updateMemberBalanceInFirestore(groupInfo.id, foundMemberId, member.balance + amount);
+      }
       toast({
         title: `${t(language, 'updated')}!`,
         description: `${foundMember} ${t(language, 'added')} ₹${amount.toLocaleString('en-IN')}`,
@@ -115,7 +153,7 @@ export const Dashboard = () => {
     }
 
     setTranscript('');
-  }, [members, language, updateMemberBalance, addLoan, addLoanRepayment]);
+  }, [members, language, updateMemberBalanceByName, addLoanByName, addLoanRepaymentByName, groupInfo]);
 
   const toggleRecording = () => {
     if (!recognition) {
@@ -144,7 +182,7 @@ export const Dashboard = () => {
       <div className="gradient-primary p-6 pb-20 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-40 h-40 bg-primary-foreground/10 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-primary-foreground/10 rounded-full translate-y-1/2 -translate-x-1/2" />
-        
+
         <div className="relative z-10">
           <h1 className="text-2xl font-bold text-primary-foreground mb-1">
             {groupInfo?.name}
@@ -153,7 +191,7 @@ export const Dashboard = () => {
             <Users className="w-4 h-4" />
             {members.length} {t(language, 'members')}
           </p>
-          
+
           {/* Contribution badge */}
           <div className="absolute top-0 right-0 bg-primary-foreground/20 backdrop-blur-sm px-3 py-1.5 rounded-lg">
             <span className="text-xs text-primary-foreground/80">{t(language, 'contribution')}</span>
@@ -212,11 +250,10 @@ export const Dashboard = () => {
           <div className="flex justify-center mb-4">
             <button
               onClick={toggleRecording}
-              className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 ${
-                isRecording
-                  ? 'bg-destructive animate-recording shadow-lg'
-                  : 'gradient-primary hover:scale-105 shadow-glow'
-              }`}
+              className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 ${isRecording
+                ? 'bg-destructive animate-recording shadow-lg'
+                : 'gradient-primary hover:scale-105 shadow-glow'
+                }`}
             >
               {isRecording ? (
                 <MicOff className="w-8 h-8 text-destructive-foreground" />
@@ -274,6 +311,12 @@ export const Dashboard = () => {
           ))}
         </div>
       </div>
+
+      {/* ✨ NEW: Manual Entry Forms */}
+      <ManualEntryForms />
+
+      {/* ✨ NEW: Transaction History */}
+      <TransactionHistory />
 
       <BottomNavigation />
     </div>

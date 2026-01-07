@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore, Language } from '@/store/appStore';
 import { t } from '@/utils/translations';
-import { Settings, Globe, Users, Calendar, RefreshCcw, Coins } from 'lucide-react';
+import { Settings, Globe, Users, Calendar, RefreshCcw, Coins, LogOut } from 'lucide-react';
 import { BottomNavigation } from './BottomNavigation';
 import { Button } from '@/components/ui/button';
+import { logoutUser } from '@/backend/auth/auth.service';
+import { deleteGroupAndMembers } from '@/backend/groups/deleteGroup.service';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,10 +33,59 @@ export const SettingsPage = () => {
   const setLanguage = useAppStore((state) => state.setLanguage);
   const resetApp = useAppStore((state) => state.resetApp);
   const navigate = useNavigate();
+  const [isResetting, setIsResetting] = useState(false);
 
-  const handleReset = () => {
-    resetApp();
-    navigate('/');
+  // ✅ RESET HANDLER - Deletes ALL data from Firestore AND local storage
+  const handleReset = async () => {
+    if (!groupInfo) {
+      // No group to delete, just clear local state
+      resetApp();
+      localStorage.removeItem('finvoice-storage');
+      localStorage.removeItem('groupId');
+      localStorage.removeItem('lang');
+      navigate('/');
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      // 1. Delete from Firestore (group + all members)
+      await deleteGroupAndMembers(groupInfo.id);
+
+      // 2. Clear local state
+      resetApp();
+
+      // 3. Clear ALL localStorage
+      localStorage.removeItem('finvoice-storage');
+      localStorage.removeItem('groupId');
+      localStorage.removeItem('lang');
+
+      // 4. Navigate to home
+      navigate('/');
+    } catch (error) {
+      console.error('Failed to reset app:', error);
+      alert('Failed to delete data. Please try again.');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  // ✅ LOGOUT HANDLER - Only logs out, preserves data in Firestore
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      // ✅ Clear Zustand state
+      resetApp();
+      // ✅ IMPORTANT: Clear Zustand persisted storage so old data doesn't restore
+      localStorage.removeItem('finvoice-storage');
+      // Keep groupId and language for next login
+      // DON'T remove groupId - it's needed to reload data on next login
+      // DON'T remove lang - keep language preference
+      navigate('/auth');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      alert('Failed to logout');
+    }
   };
 
   return (
@@ -62,7 +114,7 @@ export const SettingsPage = () => {
             <Users className="w-4 h-4" />
             Group Information
           </h3>
-          
+
           <div className="space-y-3">
             <div className="flex items-center justify-between p-3 bg-muted rounded-xl">
               <span className="text-muted-foreground">Group Name</span>
@@ -99,17 +151,16 @@ export const SettingsPage = () => {
             <Globe className="w-4 h-4" />
             Language / மொழி / भाषा / ഭാഷ
           </h3>
-          
+
           <div className="grid grid-cols-2 gap-3">
             {languages.map((lang) => (
               <button
                 key={lang.code}
                 onClick={() => setLanguage(lang.code)}
-                className={`p-4 rounded-xl border-2 transition-all ${
-                  language === lang.code
-                    ? 'border-primary bg-primary/10'
-                    : 'border-border bg-muted hover:border-primary/50'
-                }`}
+                className={`p-4 rounded-xl border-2 transition-all ${language === lang.code
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border bg-muted hover:border-primary/50'
+                  }`}
               >
                 <span className="block text-lg font-bold text-foreground">
                   {lang.nativeName}
@@ -122,25 +173,56 @@ export const SettingsPage = () => {
           </div>
         </div>
 
+        {/* Logout */}
+        <div className="bg-card rounded-2xl border border-border shadow-soft p-4">
+          <h3 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider flex items-center gap-2">
+            <LogOut className="w-4 h-4" />
+            {t(language, 'logout')}
+          </h3>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="default" className="w-full">
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Logout?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You will be logged out and returned to the login page.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleLogout} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                  Logout
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+
         {/* Reset App */}
         <div className="bg-card rounded-2xl border border-border shadow-soft p-4">
           <h3 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider flex items-center gap-2">
             <RefreshCcw className="w-4 h-4" />
-            {t(language, 'logout')}
+            Reset Application
           </h3>
-          
+
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" className="w-full">
-                <RefreshCcw className="w-4 h-4 mr-2" />
-                Reset Application
+              <Button variant="destructive" className="w-full" disabled={isResetting}>
+                <RefreshCcw className={`w-4 h-4 mr-2 ${isResetting ? 'animate-spin' : ''}`} />
+                {isResetting ? 'Deleting...' : 'Reset All Data'}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will delete all group data, member information, and transaction history. 
+                  This will delete all group data, member information, and transaction history.
                   This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
